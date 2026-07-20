@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#5b1678">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+  <title>หน้ากล้องสแกนรับงาน</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --purple: #651982;
+      --purple-dark: #3f0d54;
+      --purple-soft: #f4eafa;
+      --yellow: #ffd84d;
+      --yellow-dark: #7a5b00;
+      --green: #16834d;
+      --green-soft: #e8f7ef;
+      --orange: #d96b0b;
+      --orange-soft: #fff2e4;
+      --red: #c62828;
+      --red-soft: #fdecec;
+      --ink: #251b29;
+      --muted: #706775;
+      --border: #ded7e1;
+      --surface: #fff;
+      --safe-bottom: max(14px, env(safe-area-inset-bottom));
+      color-scheme: light;
+      font-family: "Noto Sans Thai", "Tahoma", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f5f1f7;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button { font: inherit; }
+    button:focus-visible { outline: 3px solid rgba(255, 216, 77, .9); outline-offset: 2px; }
+    [hidden] { display: none !important; }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+      color: #fff;
+      background: linear-gradient(130deg, var(--purple-dark), var(--purple));
+      box-shadow: 0 3px 16px rgba(43, 12, 54, .25);
+    }
+    .brand { min-width: 0; }
+    .brand strong { display: block; font-size: 1rem; }
+    .brand span {
+      display: block;
+      overflow: hidden;
+      margin-top: 2px;
+      color: rgba(255, 255, 255, .78);
+      font-size: .75rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .connection {
+      flex: none;
+      padding: 5px 8px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(255,255,255,.12);
+      font-size: .69rem;
+      font-weight: 800;
+    }
+    .connection::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 5px;
+      border-radius: 50%;
+      background: #ffca28;
+    }
+    .connection.ready::before { background: #67dc9e; }
+
+    main {
+      width: min(780px, 100%);
+      margin: 0 auto;
+      padding: 12px 12px calc(92px + var(--safe-bottom));
+    }
+    .assignment-card,
+    .result-card,
+    .help-card {
+      margin-bottom: 11px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 3px 15px rgba(52, 31, 61, .07);
+    }
+    .assignment-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 3px 10px;
+      align-items: center;
+      padding: 12px;
+    }
+    .assignment-code {
+      grid-row: 1 / span 2;
+      padding: 6px 8px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--purple);
+      font-size: .72rem;
+      font-weight: 900;
+    }
+    .assignment-card strong { overflow-wrap: anywhere; font-size: .9rem; }
+    .assignment-card small { color: var(--muted); font-size: .74rem; }
+
+    .camera-shell {
+      position: relative;
+      overflow: hidden;
+      min-height: min(61vh, 540px);
+      border-radius: 16px;
+      background: #130f16;
+      box-shadow: 0 8px 28px rgba(24, 12, 29, .25);
+    }
+    .camera-placeholder {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 22px;
+      color: rgba(255,255,255,.78);
+      background:
+        linear-gradient(rgba(17,13,20,.55), rgba(17,13,20,.75)),
+        repeating-linear-gradient(45deg, #2d2432 0 12px, #241d29 12px 24px);
+      text-align: center;
+    }
+    .camera-icon {
+      display: grid;
+      width: 74px;
+      height: 74px;
+      margin-bottom: 15px;
+      place-items: center;
+      border: 2px solid rgba(255,216,77,.45);
+      border-radius: 50%;
+      color: var(--yellow);
+      font-size: 2.1rem;
+    }
+    .camera-placeholder h1 { margin: 0; color: #fff; font-size: 1.16rem; }
+    .camera-placeholder p { max-width: 480px; margin: 7px 0 0; font-size: .82rem; line-height: 1.55; }
+
+    .reader-wrap,
+    #reader { width: 100%; min-height: min(61vh, 540px); }
+    #reader { overflow: hidden; background: #000; }
+    #reader video,
+    #reader img {
+      width: 100% !important;
+      min-height: min(61vh, 540px);
+      object-fit: cover !important;
+    }
+    #reader__scan_region { min-height: min(61vh, 540px); background: #000 !important; }
+    #reader__dashboard,
+    #reader__dashboard_section { display: none !important; }
+
+    .scan-guide {
+      position: absolute;
+      z-index: 5;
+      top: 22%;
+      right: 7%;
+      left: 7%;
+      height: min(38%, 230px);
+      pointer-events: none;
+      border: 2px solid rgba(255,216,77,.9);
+      border-radius: 18px;
+      box-shadow: 0 0 0 999px rgba(0,0,0,.27);
+    }
+    .scan-guide::before,
+    .scan-guide::after {
+      content: "";
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-color: #fff;
+    }
+    .scan-guide::before {
+      top: -4px;
+      left: -4px;
+      border-top: 5px solid;
+      border-left: 5px solid;
+      border-radius: 9px 0 0;
+    }
+    .scan-guide::after {
+      right: -4px;
+      bottom: -4px;
+      border-right: 5px solid;
+      border-bottom: 5px solid;
+      border-radius: 0 0 9px;
+    }
+    .scan-line {
+      position: absolute;
+      right: 4%;
+      left: 4%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #ffe67e 18%, #fff 50%, #ffe67e 82%, transparent);
+      box-shadow: 0 0 12px #ffdf57;
+      animation: scan 2s ease-in-out infinite;
+    }
+    @keyframes scan { 0%,100% { top: 12%; } 50% { top: 86%; } }
+
+    .camera-state {
+      position: absolute;
+      z-index: 8;
+      right: 10px;
+      bottom: 10px;
+      left: 10px;
+      padding: 8px 10px;
+      border-radius: 9px;
+      color: #fff;
+      background: rgba(18,12,21,.76);
+      font-size: .76rem;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .result-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 2px 10px;
+      align-items: center;
+      margin-top: 11px;
+      padding: 13px;
+      border-left: 5px solid var(--purple);
+    }
+    .result-icon {
+      display: grid;
+      grid-row: 1 / span 3;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--purple);
+      background: var(--purple-soft);
+      font-size: 1.3rem;
+      font-weight: 900;
+    }
+    .result-card.processing { border-left-color: var(--yellow-dark); }
+    .result-card.processing .result-icon { color: var(--yellow-dark); background: #fff7d7; }
+    .result-card.success { border-left-color: var(--green); }
+    .result-card.success .result-icon { color: var(--green); background: var(--green-soft); }
+    .result-card.duplicate { border-left-color: var(--orange); }
+    .result-card.duplicate .result-icon { color: var(--orange); background: var(--orange-soft); }
+    .result-card.error { border-left-color: var(--red); }
+    .result-card.error .result-icon { color: var(--red); background: var(--red-soft); }
+    .result-title { font-size: .91rem; font-weight: 900; overflow-wrap: anywhere; }
+    .result-name { color: var(--ink); font-size: .86rem; font-weight: 750; overflow-wrap: anywhere; }
+    .result-meta { color: var(--muted); font-size: .74rem; }
+
+    .help-card { padding: 11px 13px; color: var(--muted); font-size: .77rem; line-height: 1.55; }
+    .help-card strong { color: var(--ink); }
+
+    .actions {
+      position: fixed;
+      z-index: 30;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 10px 12px var(--safe-bottom);
+      border-top: 1px solid rgba(62,39,70,.15);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 -5px 22px rgba(40,25,46,.12);
+      backdrop-filter: blur(10px);
+    }
+    .btn {
+      min-height: 52px;
+      padding: 10px 15px;
+      border: 0;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .btn:disabled { cursor: not-allowed; opacity: .52; }
+    .btn-primary { color: #fff; background: linear-gradient(135deg, var(--purple), #7f279c); }
+    .btn-secondary { color: #312200; background: var(--yellow); }
+    .btn-outline { border: 1px solid var(--border); color: var(--ink); background: #fff; }
+    .action-more { display: flex; gap: 7px; }
+    .action-more .btn { min-width: 52px; padding: 8px 10px; font-size: .77rem; }
+
+    .fatal {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      display: grid;
+      padding: 25px;
+      place-items: center;
+      background: #f5f1f7;
+      text-align: center;
+    }
+    .fatal-card {
+      width: min(460px, 100%);
+      padding: 25px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 10px 35px rgba(38,21,46,.14);
+    }
+    .fatal-card h1 { margin: 0 0 8px; color: var(--purple); font-size: 1.25rem; }
+    .fatal-card p { margin: 0 0 17px; color: var(--muted); line-height: 1.6; }
+
+    @media (min-width: 700px) {
+      main { padding-top: 18px; }
+      .camera-shell, .reader-wrap, #reader, #reader video, #reader img, #reader__scan_region {
+        min-height: min(68vh, 610px);
+      }
+      .actions { right: 50%; left: auto; width: min(780px, 100%); transform: translateX(50%); }
+      .scan-guide { right: 13%; left: 13%; }
+    }
+    @media (prefers-reduced-motion: reduce) { .scan-line { animation: none; top: 50%; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>หน้ากล้องสแกนรับงาน</strong>
+      <span id="schoolName">กำลังรอข้อมูลจากระบบหลัก…</span>
+    </div>
+    <span id="connectionBadge" class="connection">กำลังเชื่อมต่อ</span>
+  </header>
+
+  <main>
+    <section class="assignment-card" aria-label="ชิ้นงานที่กำลังรับ">
+      <span id="assignmentCode" class="assignment-code">—</span>
+      <strong id="assignmentName">กำลังโหลดชิ้นงาน…</strong>
+      <small>กำหนดส่ง: <span id="dueAtText">—</span></small>
+    </section>
+
+    <section class="camera-shell" aria-label="กล้องสแกน QR Code และบาร์โค้ด">
+      <div id="cameraPlaceholder" class="camera-placeholder">
+        <div class="camera-icon" aria-hidden="true">▣</div>
+        <h1 id="cameraTitle">พร้อมขออนุญาตใช้กล้อง</h1>
+        <p id="cameraText">แตะปุ่มสีม่วงด้านล่าง จากนั้นกด “อนุญาต” เมื่อโทรศัพท์ถามสิทธิ์ กล้องหลังจะถูกเลือกก่อนโดยอัตโนมัติ</p>
+      </div>
+      <div id="readerWrap" class="reader-wrap" hidden>
+        <div id="reader"></div>
+        <div class="scan-guide"><span class="scan-line"></span></div>
+      </div>
+      <div id="cameraState" class="camera-state">รอเริ่มกล้อง</div>
+    </section>
+
+    <article id="resultCard" class="result-card idle" aria-live="assertive">
+      <span id="resultIcon" class="result-icon">⌁</span>
+      <span id="resultTitle" class="result-title">พร้อมสแกน</span>
+      <span id="resultName" class="result-name">ยังไม่มีรายการ</span>
+      <span id="resultMeta" class="result-meta">วาง QR Code หรือบาร์โค้ด Code 128 ให้อยู่กลางกรอบ</span>
+    </article>
+
+    <aside class="help-card">
+      <strong>ข้อมูลส่วนตัวปลอดภัย:</strong> หน้านี้ไม่เก็บฐานข้อมูลนักเรียน ไม่เก็บ PIN และไม่เก็บ token ของระบบ ส่งกลับเฉพาะรหัสที่กล้องอ่านได้ผ่านหน้าต่างที่เปิดมาจากระบบหลักเท่านั้น
+    </aside>
+  </main>
+
+  <div class="actions">
+    <button id="startBtn" class="btn btn-primary" type="button" disabled>อนุญาตกล้องและเริ่มสแกน</button>
+    <div class="action-more">
+      <button id="switchBtn" class="btn btn-secondary" type="button" hidden>สลับกล้อง</button>
+      <button id="stopBtn" class="btn btn-outline" type="button" hidden>หยุด</button>
+      <button id="closeBtn" class="btn btn-outline" type="button">ปิด</button>
+    </div>
+  </div>
+
+  <div id="fatalView" class="fatal" hidden>
+    <div class="fatal-card">
+      <h1 id="fatalTitle">เปิดหน้ากล้องจากระบบหลัก</h1>
+      <p id="fatalText">หน้านี้ต้องเปิดจากปุ่ม “เปิดหน้ากล้องสแกน” ภายใน Web App เพื่อเชื่อมชิ้นงานและสิทธิ์ครูอย่างปลอดภัย</p>
+      <button id="fatalCloseBtn" class="btn btn-primary" type="button">ปิดหน้านี้</button>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+    /* global Html5Qrcode, Html5QrcodeSupportedFormats */
+
+    const CHANNEL = String(new URLSearchParams(window.location.search).get('channel') || '');
+    const PROTOCOL_APP = 'rnp-live-scanner';
+    const MAIN_APP = 'rnp-submission-app';
+    const State = {
+      mainOrigin: '',
+      connected: false,
+      scanner: null,
+      cameras: [],
+      cameraIndex: 0,
+      running: false,
+      paused: false,
+      busy: false,
+      pending: null,
+      resultTimer: null,
+      readyTimer: null,
+      readyAttempts: 0,
+      lastCode: '',
+      lastAt: 0,
+      audioContext: null
+    };
+    const $ = function (id) { return document.getElementById(id); };
+
+    window.addEventListener('load', initialize);
+    window.addEventListener('message', handleMainMessage);
+    window.addEventListener('beforeunload', notifyClosed);
+    $('startBtn').addEventListener('click', function () { startCamera(); });
+    $('switchBtn').addEventListener('click', switchCamera);
+    $('stopBtn').addEventListener('click', function () { stopCamera(false); });
+    $('closeBtn').addEventListener('click', closePage);
+    $('fatalCloseBtn').addEventListener('click', closePage);
+
+    function initialize() {
+      if (!isValidChannel(CHANNEL) || !window.opener || window.opener.closed) {
+        showFatal('เปิดหน้ากล้องจากระบบหลัก', 'กรุณากลับไปที่ Web App เลือกรายวิชาและชิ้นงาน แล้วกด “เปิดหน้ากล้องสแกน” อีกครั้ง');
+        return;
+      }
+      sendReady();
+      State.readyTimer = window.setInterval(function () {
+        if (State.connected || ++State.readyAttempts > 30) {
+          clearInterval(State.readyTimer);
+          State.readyTimer = null;
+          if (!State.connected) showFatal('เชื่อมต่อระบบหลักไม่สำเร็จ', 'ปิดหน้านี้ แล้วกดเปิดหน้ากล้องจาก Web App อีกครั้ง');
+          return;
+        }
+        sendReady();
+      }, 700);
+    }
+
+    function isValidChannel(value) {
+      return /^[a-zA-Z0-9_-]{20,100}$/.test(String(value || ''));
+    }
+
+    function sendReady() {
+      postToMain({ type: 'ready' }, '*');
+    }
+
+    function postToMain(message, forcedOrigin) {
+      if (!window.opener || window.opener.closed) return false;
+      const payload = Object.assign({ app: PROTOCOL_APP, channel: CHANNEL }, message || {});
+      try {
+        window.opener.postMessage(payload, forcedOrigin || State.mainOrigin || '*');
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function handleMainMessage(event) {
+      const data = event && event.data;
+      if (!data || data.app !== MAIN_APP || data.channel !== CHANNEL) return;
+      if (event.source !== window.opener) return;
+      if (State.mainOrigin && event.origin !== State.mainOrigin) return;
+
+      if (data.type === 'init') {
+        if (!/^https:\/\//i.test(event.origin)) return;
+        State.mainOrigin = event.origin;
+        State.connected = true;
+        clearInterval(State.readyTimer);
+        State.readyTimer = null;
+        $('schoolName').textContent = safeText(data.schoolName, 'ระบบเช็กการส่งงาน');
+        $('assignmentCode').textContent = safeText(data.assignmentCode, '—');
+        $('assignmentName').textContent = safeText(data.assignmentName, 'ไม่ระบุชื่อชิ้นงาน');
+        $('dueAtText').textContent = safeText(data.dueAtText, '—');
+        $('connectionBadge').textContent = 'เชื่อมต่อแล้ว';
+        $('connectionBadge').classList.add('ready');
+        $('startBtn').disabled = false;
+        $('cameraState').textContent = 'แตะปุ่มด้านล่างเพื่อขอสิทธิ์กล้อง';
+        return;
+      }
+
+      if (data.type === 'result') {
+        receiveResult(data);
+        return;
+      }
+
+      if (data.type === 'stop') closePage();
+    }
+
+    async function startCamera(preferredCameraId) {
+      if (!State.connected || State.busy || State.running) return;
+      if (typeof window.Html5Qrcode === 'undefined') {
+        showCameraError('โหลดตัวอ่านรหัสไม่สำเร็จ', 'ตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้ากล้อง');
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showCameraError('เบราว์เซอร์ไม่รองรับกล้อง', 'ใช้ Chrome บน Android หรือ Safari บน iPhone รุ่นปัจจุบัน');
+        return;
+      }
+
+      State.busy = true;
+      ensureAudioContext();
+      $('startBtn').disabled = true;
+      $('cameraState').textContent = 'กำลังขออนุญาตและเปิดกล้อง…';
+      try {
+        if (!State.cameras.length) {
+          State.cameras = await Html5Qrcode.getCameras();
+          if (!Array.isArray(State.cameras) || !State.cameras.length) throw new Error('CAMERA_NOT_FOUND');
+        }
+
+        let cameraId = preferredCameraId;
+        if (!cameraId) {
+          const backIndex = State.cameras.findIndex(function (camera) {
+            return /(back|rear|environment|หลัง)/i.test(String(camera.label || ''));
+          });
+          State.cameraIndex = backIndex >= 0 ? backIndex : Math.max(0, State.cameras.length - 1);
+          cameraId = State.cameras[State.cameraIndex].id;
+        } else {
+          const selectedIndex = State.cameras.findIndex(function (camera) { return camera.id === cameraId; });
+          if (selectedIndex >= 0) State.cameraIndex = selectedIndex;
+        }
+
+        const formats = [];
+        if (window.Html5QrcodeSupportedFormats) {
+          formats.push(Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128);
+        }
+        State.scanner = formats.length
+          ? new Html5Qrcode('reader', { formatsToSupport: formats, verbose: false })
+          : new Html5Qrcode('reader', { verbose: false });
+
+        $('cameraPlaceholder').hidden = true;
+        $('readerWrap').hidden = false;
+        await State.scanner.start(
+          cameraId,
+          {
+            fps: 12,
+            qrbox: function (width, height) {
+              return {
+                width: Math.floor(Math.min(width * .88, 580)),
+                height: Math.floor(Math.min(height * .44, 260))
+              };
+            },
+            disableFlip: true
+          },
+          handleDecoded,
+          function () { /* เฟรมที่ยังอ่านรหัสไม่ได้เป็นสถานะปกติ */ }
+        );
+        State.running = true;
+        State.paused = false;
+        $('startBtn').hidden = true;
+        $('stopBtn').hidden = false;
+        $('switchBtn').hidden = State.cameras.length < 2;
+        $('cameraState').textContent = 'กำลังสแกน · วางรหัสให้อยู่กลางกรอบ';
+        setResult('idle', '⌁', 'พร้อมสแกน', 'ยังไม่มีรายการ', 'รองรับ QR Code และบาร์โค้ด Code 128');
+      } catch (error) {
+        await clearScanner();
+        $('readerWrap').hidden = true;
+        $('cameraPlaceholder').hidden = false;
+        const message = normalizeCameraError(error);
+        showCameraError('เปิดกล้องไม่สำเร็จ', message);
+      } finally {
+        State.busy = false;
+        $('startBtn').disabled = !State.connected;
+      }
+    }
+
+    async function stopCamera(keepPlaceholderMessage) {
+      if (State.busy) return;
+      State.busy = true;
+      clearTimeout(State.resultTimer);
+      State.pending = null;
+      try {
+        await clearScanner();
+      } finally {
+        State.running = false;
+        State.paused = false;
+        State.busy = false;
+        $('readerWrap').hidden = true;
+        $('cameraPlaceholder').hidden = false;
+        $('startBtn').hidden = false;
+        $('startBtn').disabled = !State.connected;
+        $('stopBtn').hidden = true;
+        $('switchBtn').hidden = true;
+        $('cameraState').textContent = 'กล้องหยุดแล้ว';
+        if (!keepPlaceholderMessage) {
+          $('cameraTitle').textContent = 'กล้องหยุดแล้ว';
+          $('cameraText').textContent = 'แตะปุ่มสีม่วงเพื่อเปิดกล้องและสแกนต่อ';
+        }
+      }
+    }
+
+    async function clearScanner() {
+      const scanner = State.scanner;
+      State.scanner = null;
+      if (!scanner) return;
+      try {
+        const scannerState = scanner.getState ? Number(scanner.getState()) : 0;
+        if (State.running || State.paused || scannerState === 2 || scannerState === 3) await scanner.stop();
+      } catch (error) { /* กล้องอาจหยุดเองเมื่อสลับแท็บ */ }
+      try { scanner.clear(); } catch (error) { /* ไม่มีข้อมูลที่ต้องล้าง */ }
+    }
+
+    async function switchCamera() {
+      if (!State.running || State.cameras.length < 2 || State.busy || State.pending) return;
+      const nextIndex = (State.cameraIndex + 1) % State.cameras.length;
+      const nextId = State.cameras[nextIndex].id;
+      await stopCamera(true);
+      await startCamera(nextId);
+    }
+
+    function handleDecoded(decodedText) {
+      const code = String(decodedText || '').trim();
+      const now = Date.now();
+      if (!code || State.pending || !State.running || State.busy) return;
+      if (code === State.lastCode && now - State.lastAt < 3500) return;
+      State.lastCode = code;
+      State.lastAt = now;
+
+      const requestId = now.toString(36) + Math.random().toString(36).slice(2, 10);
+      State.pending = { requestId: requestId, code: code };
+      pauseScanner();
+      setResult('processing', '…', 'กำลังตรวจสอบและบันทึก…', 'รหัสที่อ่านได้: ' + maskCode(code), 'กรุณารอสักครู่');
+      $('cameraState').textContent = 'กำลังบันทึกข้อมูลลง Google Sheets…';
+
+      if (!postToMain({ type: 'code', requestId: requestId, code: code })) {
+        finishWithLocalError('ขาดการเชื่อมต่อกับระบบหลัก กรุณาปิดแล้วเปิดหน้ากล้องใหม่');
+        return;
+      }
+
+      clearTimeout(State.resultTimer);
+      State.resultTimer = window.setTimeout(function () {
+        if (!State.pending || State.pending.requestId !== requestId) return;
+        finishWithLocalError('รอผลบันทึกนานเกินไป กรุณาตรวจอินเทอร์เน็ตแล้วสแกนอีกครั้ง');
+      }, 25000);
+    }
+
+    function receiveResult(data) {
+      if (!State.pending || String(data.requestId || '') !== State.pending.requestId) return;
+      clearTimeout(State.resultTimer);
+      const type = ['success', 'duplicate', 'error'].indexOf(data.resultType) >= 0 ? data.resultType : 'error';
+      const student = data.student || {};
+      const submission = data.submission || {};
+      const name = safeText(student.fullName, type === 'error' ? 'ไม่พบข้อมูลนักเรียน' : '—');
+      const metaParts = [];
+      if (student.classNo) metaParts.push('เลขที่ ' + safeText(student.classNo, '—'));
+      if (student.className) metaParts.push('ชั้น ' + safeText(student.className, '—'));
+      if (submission.status) metaParts.push(safeText(submission.status, ''));
+      if (submission.scannedAtText) metaParts.push(safeText(submission.scannedAtText, ''));
+
+      const icon = type === 'success' ? '✓' : (type === 'duplicate' ? '!' : '×');
+      setResult(type, icon, safeText(data.message, 'ตรวจสอบรายการ'), name, metaParts.join(' · ') || 'พร้อมสแกนรายการถัดไป');
+      announce(type, safeText(data.message, type === 'success' ? 'บันทึกการส่งงานเรียบร้อย' : 'ตรวจสอบรายการ'));
+      $('cameraState').textContent = type === 'success'
+        ? 'บันทึกแล้ว · เตรียมสแกนคนถัดไป'
+        : 'ตรวจสอบผลด้านล่าง · เตรียมสแกนต่อ';
+      State.pending = null;
+      window.setTimeout(resumeScanner, type === 'success' ? 900 : 1300);
+    }
+
+    function finishWithLocalError(message) {
+      clearTimeout(State.resultTimer);
+      State.pending = null;
+      setResult('error', '×', 'บันทึกไม่สำเร็จ', message, 'ระบบยังไม่ได้ยืนยันการบันทึก');
+      announce('error', 'บันทึกไม่สำเร็จ');
+      $('cameraState').textContent = 'เกิดข้อผิดพลาด · พร้อมลองใหม่';
+      window.setTimeout(resumeScanner, 1400);
+    }
+
+    function pauseScanner() {
+      if (!State.scanner || !State.running) return;
+      try {
+        State.scanner.pause(true);
+        State.paused = true;
+      } catch (error) { /* เวอร์ชันบางรุ่นไม่รองรับ pause แต่ pending ป้องกันการส่งซ้ำอยู่แล้ว */ }
+    }
+
+    function resumeScanner() {
+      if (!State.scanner || !State.running || State.pending) return;
+      try {
+        State.scanner.resume();
+        State.paused = false;
+      } catch (error) { /* หากระบบปฏิบัติการหยุดกล้อง ครูสามารถกดหยุดแล้วเปิดใหม่ */ }
+      $('cameraState').textContent = 'กำลังสแกน · พร้อมรับนักเรียนคนถัดไป';
+    }
+
+    function setResult(type, icon, title, name, meta) {
+      $('resultCard').className = 'result-card ' + type;
+      $('resultIcon').textContent = icon;
+      $('resultTitle').textContent = title;
+      $('resultName').textContent = name;
+      $('resultMeta').textContent = meta;
+    }
+
+    function showCameraError(title, message) {
+      $('cameraTitle').textContent = title;
+      $('cameraText').textContent = message;
+      $('cameraState').textContent = title;
+      setResult('error', '×', title, message, 'แก้ไขแล้วแตะปุ่มเริ่มกล้องอีกครั้ง');
+      $('startBtn').hidden = false;
+      $('startBtn').disabled = !State.connected;
+    }
+
+    function normalizeCameraError(error) {
+      const raw = String((error && (error.name || error.message)) || error || '');
+      if (/NotAllowed|Permission|denied|ไม่อนุญาต/i.test(raw)) {
+        return 'ไม่ได้รับอนุญาตใช้กล้อง กรุณาเปิดสิทธิ์ Camera ในการตั้งค่าเว็บไซต์ของ Chrome หรือ Safari แล้วลองใหม่';
+      }
+      if (/NotFound|DevicesNotFound|CAMERA_NOT_FOUND/i.test(raw)) return 'ไม่พบกล้องบนอุปกรณ์นี้';
+      if (/NotReadable|TrackStart|Could not start/i.test(raw)) return 'กล้องถูกใช้งานโดยแอปอื่น กรุณาปิดแอปกล้องหรือวิดีโอคอลแล้วลองใหม่';
+      if (/Overconstrained/i.test(raw)) return 'ไม่พบกล้องที่เลือก กรุณากดสลับกล้องหรือลองใหม่';
+      if (!window.isSecureContext) return 'ต้องเปิดหน้าสแกนผ่าน HTTPS เท่านั้น';
+      return 'เบราว์เซอร์เปิดกล้องไม่ได้ กรุณาตรวจสิทธิ์กล้องแล้วลองใหม่';
+    }
+
+    function ensureAudioContext() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      try {
+        if (!State.audioContext) State.audioContext = new AudioContextClass();
+        if (State.audioContext.state === 'suspended') State.audioContext.resume();
+      } catch (error) { State.audioContext = null; }
+    }
+
+    function announce(type, text) {
+      playTone(type);
+      if (navigator.vibrate) navigator.vibrate(type === 'success' ? [80] : [80, 45, 80]);
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'th-TH';
+          utterance.rate = 1.06;
+          utterance.volume = .85;
+          window.speechSynthesis.speak(utterance);
+        } catch (error) { /* ใช้เสียง beep แทนเมื่อไม่มีเสียงภาษาไทย */ }
+      }
+    }
+
+    function playTone(type) {
+      ensureAudioContext();
+      const context = State.audioContext;
+      if (!context) return;
+      const tones = type === 'success'
+        ? [{ f: 720, at: 0, d: .11 }, { f: 980, at: .12, d: .16 }]
+        : [{ f: 310, at: 0, d: .16 }, { f: 230, at: .18, d: .22 }];
+      tones.forEach(function (tone) {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.value = tone.f;
+        oscillator.type = 'sine';
+        gain.gain.setValueAtTime(.0001, context.currentTime + tone.at);
+        gain.gain.exponentialRampToValueAtTime(.16, context.currentTime + tone.at + .015);
+        gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + tone.at + tone.d);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(context.currentTime + tone.at);
+        oscillator.stop(context.currentTime + tone.at + tone.d + .02);
+      });
+    }
+
+    function safeText(value, fallback) {
+      const text = String(value === null || value === undefined ? '' : value).trim();
+      return (text || fallback || '').slice(0, 500);
+    }
+
+    function maskCode(code) {
+      const text = String(code || '');
+      if (text.length <= 6) return text;
+      return text.slice(0, 3) + '•••' + text.slice(-3);
+    }
+
+    function notifyClosed() {
+      postToMain({ type: 'closed' });
+    }
+
+    async function closePage() {
+      notifyClosed();
+      try { await stopCamera(true); } catch (error) { /* ปิดหน้าต่อได้ */ }
+      window.close();
+      window.setTimeout(function () {
+        showFatal('ปิดหน้ากล้องได้แล้ว', 'หากหน้านี้ยังไม่ปิดอัตโนมัติ ให้ปิดแท็บนี้ด้วยปุ่มของเบราว์เซอร์ แล้วกลับไปยัง Web App');
+      }, 250);
+    }
+
+    function showFatal(title, text) {
+      $('fatalTitle').textContent = title;
+      $('fatalText').textContent = text;
+      $('fatalView').hidden = false;
+    }
+  </script>
+</body>
+</html>
