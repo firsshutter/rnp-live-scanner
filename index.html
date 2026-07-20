@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="th">
 <head>
@@ -10,6 +11,8 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
   <title>หน้ากล้องสแกนรับงาน</title>
+  <link rel="icon" type="image/png" href="school-logo.png">
+  <link rel="apple-touch-icon" href="school-logo.png">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     :root {
@@ -57,6 +60,14 @@
       color: #fff;
       background: linear-gradient(130deg, var(--purple-dark), var(--purple));
       box-shadow: 0 3px 16px rgba(43, 12, 54, .25);
+    }
+    .brand-wrap { display: flex; min-width: 0; align-items: center; gap: 9px; }
+    .scanner-school-logo {
+      width: 38px;
+      height: 46px;
+      flex: none;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.2));
     }
     .brand { min-width: 0; }
     .brand strong { display: block; font-size: 1rem; }
@@ -333,9 +344,12 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <strong>หน้ากล้องสแกนรับงาน</strong>
-      <span id="schoolName">กำลังรอข้อมูลจากระบบหลัก…</span>
+    <div class="brand-wrap">
+      <img class="scanner-school-logo" src="school-logo.png" alt="">
+      <div class="brand">
+        <strong>หน้ากล้องสแกนรับงาน</strong>
+        <span id="schoolName">กำลังรอข้อมูลจากระบบหลัก…</span>
+      </div>
     </div>
     <span id="connectionBadge" class="connection">กำลังเชื่อมต่อ</span>
   </header>
